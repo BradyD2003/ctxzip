@@ -34,6 +34,19 @@ Approximate **functions that fit** in a single context window (same methodology 
 
 At **200k tokens**, Tier 0 fits on the order of **6.4×** as many functions as naive full-source packing; Tier 1 fits about **3.4×**—still a large gain while carrying richer summaries. Your absolute numbers depend on project and tokenizer; the pattern is consistent: **structured views scale better than pasting every body.**
 
+### Real project example (`ctxzip_stats`)
+
+On a large full-stack codebase indexed with ctxzip, **`ctxzip_stats`** reported:
+
+| Metric | Value |
+|--------|--------|
+| **Chunks** | 1,941 across 336 files |
+| **Languages** | TypeScript 1,309 · Python 344 · Swift 208 · JavaScript 80 |
+| **Embeddings** | 1,941 / 1,941 (100%) — semantic search |
+| **Raw vs Tier 0** | **~1.54M tokens** (full source) → **~63.8k tokens** for the all-signatures “directory” (**~96%** savings) |
+
+So the **entire** indexed codebase fits in the Tier 0 map at tens of thousands of tokens instead of well over a million—while full source for any symbol stays in the index for retrieval.
+
 ## Features
 
 - **Four tools:** `ctxzip_index`, `ctxzip_query`, `ctxzip_get_source`, `ctxzip_stats`
