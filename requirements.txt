@@ -1,0 +1,6 @@
+# ctxzip MCP server — Python 3.11+
+mcp>=1.26,<2
+openai>=1.0
+numpy>=1.26
+anthropic>=0.30
+rich>=13.0

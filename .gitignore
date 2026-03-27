@@ -1,0 +1,10 @@
+.venv/
+venv/
+.env
+.ctxzip_index.json
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.DS_Store
