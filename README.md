@@ -138,4 +138,5 @@ Released under the [MIT License](LICENSE).
 
 ## More detail
 
-See [MCP_SETUP.md](MCP_SETUP.md) for duplicate examples and search-mode notes.
+- [MCP_SETUP.md](MCP_SETUP.md) — Cursor / Claude examples and search modes  
+- [OPENCLAW.md](OPENCLAW.md) — using ctxzip with **OpenClaw** (`openclaw.json`, [openclaw.json.example](openclaw.json.example))

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ctxzip": {
+      "command": "/path/to/ctxzip/.venv/bin/python",
+      "args": [
+        "/path/to/ctxzip/mcp_server.py"
+      ],
+      "transport": "stdio"
+    }
+  }
+}
