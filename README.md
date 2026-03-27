@@ -1,8 +1,8 @@
 # ctxzip — MCP codebase context (semantic search)
 
-**ctxzip** is **open source** ([MIT License](LICENSE)): a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that indexes a project’s source files, builds a compressed “directory” of all symbols, and retrieves **semantic** (embedding) or **TF‑IDF** context for coding tasks—so your agent gets relevant code without stuffing the full repo into the prompt.
+**ctxzip** is **source-available** under the [Business Source License 1.1](LICENSE) (BUSL-1.1): a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that indexes a project’s source files, builds a compressed “directory” of all symbols, and retrieves **semantic** (embedding) or **TF‑IDF** context for coding tasks—so your agent gets relevant code without stuffing the full repo into the prompt.
 
-Use it from any public GitHub clone: install dependencies, point your MCP client at `mcp_server.py`, and index your repo. Issues and pull requests are welcome.
+See [LICENSE](LICENSE) for parameters (including **Additional Use Grant**: free for individual developers and non-commercial use; **Change Date** 2029-01-01; **Change License** Apache 2.0). Install from a Git clone: dependencies, point your MCP client at `mcp_server.py`, and index your repo. Issues and pull requests are welcome.
 
 ## What ctxzip does
 
@@ -134,7 +134,7 @@ python ctxzip.py stats
 
 ## License
 
-Released under the [MIT License](LICENSE).
+[Business Source License 1.1](LICENSE) (BUSL-1.1). After the **Change Date** (2029-01-01), the software is available under **Apache License, Version 2.0** as stated in `LICENSE`. Additional production use beyond the grant may require a commercial license from the licensor—read the full text.
 
 ## More detail
 
