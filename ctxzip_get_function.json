@@ -1,0 +1,22 @@
+{
+  "name": "ctxzip_get_function",
+  "description": "Return the complete enclosing function, method, or class for a location. Uses Tree-sitter on disk to find the smallest AST node that contains the line (exact boundaries). If parsing is unavailable, merges overlapping indexed chunks for the same file and line range. Use when ctxzip_get_source returns only part of a large orchestrator or when a chunk was split across index boundaries.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "file": {
+        "type": "string",
+        "description": "Absolute or relative path to the source file on disk"
+      },
+      "line": {
+        "type": "integer",
+        "description": "1-based line number inside the file (required if chunk_id is omitted)"
+      },
+      "chunk_id": {
+        "type": "string",
+        "description": "Optional indexed chunk ID. When set, uses that chunk's file and defaults the line to the middle of the chunk's line range if line is omitted."
+      }
+    },
+    "required": []
+  }
+}

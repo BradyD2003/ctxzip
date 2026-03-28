@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
-from chunker import Chunk, _tokens
+from chunker import Chunk, _tokens, LIGHTWEIGHT_DOCSTRING_LANGUAGES
 
 
 # ── Embedding helpers ──────────────────────────────────────────────────────
@@ -41,7 +41,8 @@ def _chunk_embed_text(chunk: Chunk) -> str:
     parts = [chunk.name, chunk.signature]
     if chunk.docstring:
         parts.append(chunk.docstring)
-    parts.append(chunk.raw[:500])
+    if chunk.language not in LIGHTWEIGHT_DOCSTRING_LANGUAGES:
+        parts.append(chunk.raw[:500])
     return '\n'.join(parts)
 
 

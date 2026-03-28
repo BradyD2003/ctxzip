@@ -2,9 +2,10 @@
 docstrings.py — docstring extraction and auto-generation
 
 At index time, every chunk goes through this module:
-  1. Try to extract an existing docstring from the raw source
-  2. If none found, call Haiku to generate a concise docstring
-  3. Store the docstring on the chunk as chunk.docstring
+  1. Markdown / SQL (LIGHTWEIGHT_DOCSTRING_LANGUAGES): Tier-1 text is chunk.raw; no Haiku.
+  2. Else: try to extract an existing docstring from the raw source
+  3. If none found, call Haiku to generate a concise docstring
+  4. Store the docstring on the chunk as chunk.docstring
 
 The docstring becomes Tier 1 in the three-tier context system:
   Tier 0: signature only     (~8 tokens)   — always sent
@@ -14,7 +15,13 @@ The docstring becomes Tier 1 in the three-tier context system:
 
 import re
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
+
+from chunker import LIGHTWEIGHT_DOCSTRING_LANGUAGES
+
+# Parallel Anthropic calls during index (Haiku docstring generation)
+DOCSTRING_API_CONCURRENCY = 10
 
 
 # ── Extraction ─────────────────────────────────────────────────────────────
@@ -142,11 +149,12 @@ def _extract_ruby_comment(raw: str) -> Optional[str]:
 # ── Auto-generation via Haiku ──────────────────────────────────────────────
 
 DOCSTRING_SYSTEM = """You are a precise technical writer generating docstrings for code functions.
-Given a function's source code, generate a concise docstring:
+Given a function's source code and its file path, generate a concise docstring:
 1. One-sentence description of what the function does
 2. Key parameters and their purpose (skip self/cls)
 3. What it returns
 
+Use the File path to disambiguate context (e.g. service, route, edge function, or feature area).
 Use the language's conventional doc comment style.
 
 Rules:
@@ -156,7 +164,12 @@ Rules:
 - Return ONLY the docstring text, no wrapping code or explanation."""
 
 
-def generate_docstring(chunk_raw: str, signature: str, language: str) -> str:
+def generate_docstring(
+    chunk_raw: str,
+    signature: str,
+    language: str,
+    filepath: str = "",
+) -> str:
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         return f"Function: {signature}"
@@ -165,9 +178,10 @@ def generate_docstring(chunk_raw: str, signature: str, language: str) -> str:
         import anthropic
         client = anthropic.Anthropic(api_key=api_key)
 
-        prompt = f"""Generate a docstring for this {language} function:
+        file_line = f"File: {filepath}\n\n" if filepath else ""
+        prompt = f"""Generate a docstring for this {language} function.
 
-```{language}
+{file_line}```{language}
 {chunk_raw[:2000]}
 ```
 
@@ -189,16 +203,21 @@ def docstring_tokens(docstring: str) -> int:
     return max(1, len(docstring) // 4)
 
 
-def ensure_docstring(chunk_raw: str, signature: str, language: str,
-                     existing: Optional[str] = None,
-                     generate: bool = True) -> tuple[str, bool]:
+def ensure_docstring(
+    chunk_raw: str,
+    signature: str,
+    language: str,
+    existing: Optional[str] = None,
+    generate: bool = True,
+    filepath: str = "",
+) -> tuple[str, bool]:
     if existing:
         return existing, False
     extracted = extract_docstring(chunk_raw, language)
     if extracted:
         return extracted, False
     if generate:
-        generated = generate_docstring(chunk_raw, signature, language)
+        generated = generate_docstring(chunk_raw, signature, language, filepath)
         return generated, True
     return f"Function: {signature}", False
 
@@ -215,6 +234,11 @@ def enrich_with_docstrings(chunks, force_generate: bool = False):
     for chunk in chunks:
         if chunk.docstring and not force_generate:
             continue
+        if chunk.language in LIGHTWEIGHT_DOCSTRING_LANGUAGES:
+            chunk.docstring = chunk.raw
+            chunk.docstring_generated = False
+            extracted += 1
+            continue
         doc = extract_docstring(chunk.raw, chunk.language)
         if doc:
             chunk.docstring = doc
@@ -226,8 +250,14 @@ def enrich_with_docstrings(chunks, force_generate: bool = False):
     if needs_generation:
         api_key = os.environ.get("ANTHROPIC_API_KEY", "")
         if api_key:
-            for chunk in needs_generation:
-                doc = generate_docstring(chunk.raw, chunk.signature, chunk.language)
+
+            def _gen_one(c):
+                return generate_docstring(c.raw, c.signature, c.language, c.file)
+
+            with ThreadPoolExecutor(max_workers=DOCSTRING_API_CONCURRENCY) as pool:
+                docs = list(pool.map(_gen_one, needs_generation))
+
+            for chunk, doc in zip(needs_generation, docs):
                 chunk.docstring = doc
                 chunk.docstring_generated = True
                 generated += 1

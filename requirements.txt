@@ -4,3 +4,9 @@ openai>=1.0
 numpy>=1.26
 anthropic>=0.30
 rich>=13.0
+watchdog>=4,<5
+# Tree-sitter (AST chunking + ctxzip_get_function); optional grammars for Py/JS/TS
+tree-sitter>=0.21
+tree-sitter-python>=0.23
+tree-sitter-javascript>=0.23
+tree-sitter-typescript>=0.23

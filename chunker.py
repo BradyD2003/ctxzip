@@ -1,6 +1,10 @@
 """
 chunker.py — universal multi-language code chunker
 
+For Python, JavaScript, and TypeScript/TSX, indexing prefers Tree-sitter
+(AST-accurate spans) when `tree-sitter` and grammar wheels are installed;
+otherwise regex-based chunkers are used.
+
 Supported languages:
   Python      .py
   JavaScript  .js .mjs .cjs .jsx
@@ -14,6 +18,10 @@ Supported languages:
   Swift       .swift
   Kotlin      .kt
   Scala       .scala
+  Markdown    .md   (indexed; Tier-1 text = raw chunk, no Haiku)
+  SQL         .sql  (indexed; Tier-1 text = raw chunk, no Haiku)
+
+  Skipped (not indexed): .json .yaml .yml — usually config, low semantic value.
 
 Falls back to line-window chunking for unknown file types.
 """
@@ -85,7 +93,18 @@ EXTENSION_MAP = {
     '.go': 'go', '.rs': 'rust', '.java': 'java',
     '.c': 'c', '.h': 'c', '.cpp': 'cpp', '.cc': 'cpp', '.hpp': 'cpp',
     '.rb': 'ruby', '.php': 'php', '.swift': 'swift', '.kt': 'kotlin', '.scala': 'scala',
+    '.md': 'markdown',
+    '.sql': 'sql',
 }
+
+# Not indexed — config-heavy, rarely useful for code semantic search
+SKIP_EXTENSIONS = frozenset({'.json', '.yaml', '.yml'})
+
+# Indexed; docstrings.py uses chunk raw as Tier-1 summary (no Haiku generation)
+LIGHTWEIGHT_EXTENSIONS = frozenset({'.md', '.sql'})
+LIGHTWEIGHT_DOCSTRING_LANGUAGES = frozenset(
+    EXTENSION_MAP[ext] for ext in LIGHTWEIGHT_EXTENSIONS
+)
 
 def detect_language(path: str | Path) -> str:
     return EXTENSION_MAP.get(Path(path).suffix.lower(), 'unknown')
@@ -449,6 +468,17 @@ def _chunk_generic(source: str, fp: str, lang: str, window: int = 40) -> list[Ch
 def chunk_source(source: str, filepath: str) -> list[Chunk]:
     lang = detect_language(filepath)
     fp = str(filepath)
+    # Prefer Tree-sitter AST chunking for supported languages when installed.
+    if lang in ('python', 'javascript', 'typescript'):
+        try:
+            from tree_sitter_chunk import chunk_with_tree_sitter
+
+            ast_chunks = chunk_with_tree_sitter(source, fp, lang)
+            if ast_chunks:
+                return ast_chunks
+        except Exception:
+            pass
+
     if lang == 'python':
         chunks = _chunk_python(source, fp)
     elif lang in ('javascript', 'typescript'):
@@ -486,7 +516,10 @@ def chunk_directory(root: str | Path, extensions: tuple | None = None) -> list[C
             continue
         if any(skip in filepath.parts for skip in SKIP_DIRS):
             continue
-        if filepath.suffix.lower() not in supported:
+        suffix = filepath.suffix.lower()
+        if suffix in SKIP_EXTENSIONS:
+            continue
+        if suffix not in supported:
             continue
         try:
             all_chunks.extend(chunk_file(filepath))

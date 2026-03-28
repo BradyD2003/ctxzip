@@ -34,14 +34,13 @@ try:
     from rich.panel import Panel
     from rich.table import Table
     from rich.syntax import Syntax
-    from rich.progress import Progress, SpinnerColumn, TextColumn
     from rich import print as rprint
     HAS_RICH = True
 except ImportError:
     HAS_RICH = False
 
 from chunker import chunk_file, chunk_directory, Chunk, _tokens
-from docstrings import extract_docstring, generate_docstring, docstring_tokens
+from docstrings import enrich_with_docstrings
 from retriever import (
     Retriever, RetrievalResult, tier0_repr, tier1_repr,
     embed_texts, _chunk_embed_text,
@@ -79,57 +78,7 @@ def merge_index(existing: list[Chunk], new: list[Chunk]) -> list[Chunk]:
     return kept + new
 
 
-# ── Docstring enrichment ───────────────────────────────────────────────────
-
-def enrich_with_docstrings(chunks: list[Chunk], force_generate: bool = False) -> tuple[list[Chunk], int, int]:
-    extracted = 0
-    generated = 0
-    needs_generation = []
-
-    for chunk in chunks:
-        if chunk.docstring and not force_generate:
-            continue
-        doc = extract_docstring(chunk.raw, chunk.language)
-        if doc:
-            chunk.docstring = doc
-            chunk.docstring_generated = False
-            extracted += 1
-        else:
-            needs_generation.append(chunk)
-
-    if needs_generation:
-        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-        if not api_key:
-            if HAS_RICH:
-                console.print(f"[yellow]⚠ No ANTHROPIC_API_KEY — skipping generation for {len(needs_generation)} chunks[/yellow]")
-            else:
-                print(f"Warning: No ANTHROPIC_API_KEY — {len(needs_generation)} chunks have no docstring")
-        else:
-            if HAS_RICH:
-                with Progress(
-                    SpinnerColumn(),
-                    TextColumn("[progress.description]{task.description}"),
-                    console=console,
-                ) as progress:
-                    task = progress.add_task(
-                        f"Generating docstrings for {len(needs_generation)} functions...",
-                        total=len(needs_generation)
-                    )
-                    for chunk in needs_generation:
-                        doc = generate_docstring(chunk.raw, chunk.signature, chunk.language)
-                        chunk.docstring = doc
-                        chunk.docstring_generated = True
-                        generated += 1
-                        progress.advance(task)
-            else:
-                for i, chunk in enumerate(needs_generation):
-                    print(f"Generating docstring {i+1}/{len(needs_generation)}: {chunk.signature[:40]}")
-                    doc = generate_docstring(chunk.raw, chunk.signature, chunk.language)
-                    chunk.docstring = doc
-                    chunk.docstring_generated = True
-                    generated += 1
-
-    return chunks, extracted, generated
+# Docstring enrichment: shared implementation in docstrings.py (10 concurrent Haiku calls + file path in prompt)
 
 
 # ── Embedding generation ───────────────────────────────────────────────────
