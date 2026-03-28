@@ -1,6 +1,8 @@
 # ctxzip MCP Setup
 
-For install, tools overview, and license, see **[README.md](README.md)**.
+**License:** [Business Source License 1.1](LICENSE) (BUSL-1.1) — source-available, not MIT.
+
+For install, tools overview, and more license detail, see **[README.md](README.md)**.
 
 ## Install dependencies
 

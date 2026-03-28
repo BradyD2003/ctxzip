@@ -1,6 +1,8 @@
 """
 payload.py — builds three-tier context payload
 
+Licensed under BUSL-1.1 — see LICENSE in the repository (not MIT).
+
 Structure sent to the model:
   [SYSTEM]  Instructions + tool definition for get_full_source()
   [USER]    TASK
